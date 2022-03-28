@@ -25,6 +25,10 @@ Settings can be opened in your default editor to make changes by right clicking 
 
 This will open the `settings.json` file which will have a default command to open Google. Changes to this file are watched and will apply as soon as it is saved.
 
+## Settings Validation
+
+Settings file is validated upon saving. If a field is missing it will tell you which field. If the field is for a command it will tell you the index of that command in the list of commands.
+
 # Examples
 
 The following command 
