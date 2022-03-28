@@ -1,5 +1,5 @@
 {
-  "name": "command-runner",
+  "name": "cmd-runner",
   "version": "1.0.0",
   "main": "main.js",
   "license": "MIT",
@@ -9,6 +9,6 @@
   },
   "scripts": {
     "start": "electron .",
-    "pack": "electron-packager . CommandRunner --platform=win32 --icon=./icon.ico --out=bin --overwrite"
+    "pack": "electron-packager . CMDRunner --platform=win32 --icon=./icon.ico --out=bin --overwrite"
   }
 }
