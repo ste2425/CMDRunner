@@ -4,17 +4,21 @@ const { app, Menu, Tray, shell, BrowserWindow, session, dialog } = require('elec
   { spawn } = require('child_process');
 
 /** @typedef {{ label: string, command: string }} ConfigCommand */
-/** @typedef {{ commands: ConfigCommand[] }} Config */
+/** @typedef {{ darkTheme: boolean }} ConfigGeneral */
+/** @typedef {{ commands: ConfigCommand[], general: ConfigGeneral }} Config */
 
 /** @type {Config} */
 const defaultConfig = { 
+  general: {
+    darkTheme: true
+  },
   commands: [{
     label: 'Example: Open Google',
     command: '/C "start https://google.com"'
   }] 
 };
 
-const iconFile = path.join(__dirname, 'icon.png');
+const gotTheLock = app.requestSingleInstanceLock();
 
 class CMDRunner {
   /** @type {Tray} */ #tray;
@@ -25,10 +29,11 @@ class CMDRunner {
   constructor() {
     app.whenReady()
       .then(() => {
-        this.#tray = new Tray(iconFile);
         this.#settingsPath = path.join(app.getPath('userData'), 'settings.json');
-
         this.#verifySettingsFile();
+
+        this.#tray = new Tray(this.#getTrayIconPath());
+
         this.#generateMenu();
 
         this.#settingsWatcher = fs.watch(this.#settingsPath).on('change', () => this.#watchHandler());
@@ -40,11 +45,28 @@ class CMDRunner {
       });
   }
 
+  /** @returns {Config} */
+  #getConfig() {
+    return JSON.parse(fs.readFileSync(this.#settingsPath));
+  }
+
+  #getTrayIconPath() {
+    const config = this.#getConfig();
+    
+    const image = config?.general?.darkTheme ? 'icon-dark.png' : 'icon-light.png';
+
+    return path.join(__dirname, image);
+  }
+
   // Watch sometimes fires multiple times so just debounce it
   #watchHandler() {
     clearTimeout(this.#watchDebounceTimeout);
 
-    this.#watchDebounceTimeout = setTimeout(() => this.#generateMenu(), 500);
+    this.#watchDebounceTimeout = setTimeout(() => {
+      this.#generateMenu();
+
+      this.#tray.setImage(this.#getTrayIconPath());
+    }, 500);
   }
 
   #verifySettingsFile() {
@@ -60,7 +82,7 @@ class CMDRunner {
   }
 
   #generateMenu() {
-    const config = JSON.parse(fs.readFileSync(this.#settingsPath));
+    const config = this.#getConfig();
 
     const validationErrors = this.#verifyConfig(config),
       hasErrors = validationErrors.length !== 0;
@@ -144,4 +166,8 @@ class CMDRunner {
   }
 }
 
-new CMDRunner();
+if (gotTheLock) {
+  new CMDRunner();
+} else {
+  app.quit();
+}

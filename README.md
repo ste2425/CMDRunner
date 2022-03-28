@@ -29,6 +29,10 @@ This will open the `settings.json` file which will have a default command to ope
 
 Settings file is validated upon saving. If a field is missing it will tell you which field. If the field is for a command it will tell you the index of that command in the list of commands.
 
+## Dark/Light theme
+
+It is possible to set the icon to a dark vs light mode by modyfing the settings file.
+
 # Examples
 
 The following command 
