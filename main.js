@@ -1,22 +1,30 @@
-const { app, Menu, Tray, shell, BrowserWindow, session, dialog } = require('electron'),
+const { app, Menu, Tray, shell, BrowserWindow, session } = require('electron'),
   path = require('path'),
   fs = require('fs'),
   { spawn } = require('child_process');
 
-/** @typedef {{ label: string, command: string }} ConfigCommand */
+/** @typedef {{ label: string, command: string, group: string }} ConfigCommand */
 /** @typedef {{ darkTheme: boolean }} ConfigGeneral */
 /** @typedef {{ commands: ConfigCommand[], general: ConfigGeneral }} Config */
 
 /** @type {Config} */
-const defaultConfig = { 
+const defaultConfig = {
   general: {
     darkTheme: true
   },
-  commands: [{
-    label: 'Example: Open Google',
-    command: '/C "start https://google.com"'
-  }] 
+  commands: [
+    {
+      label: "Example: Open GitHub",
+      command: "/C \"start https://github.com\""
+    }, {
+      label: 'Example: Open Google',
+      command: '/C "start https://google.com"',
+      group: "Optional Group"
+    }]
 };
+
+const defaultCommand = "/K \"echo Command not provided\"",
+  defaultLabel = "Label not provided";
 
 const gotTheLock = app.requestSingleInstanceLock();
 
@@ -52,7 +60,7 @@ class CMDRunner {
 
   #getTrayIconPath() {
     const config = this.#getConfig();
-    
+
     const image = config?.general?.darkTheme ? 'icon-dark.png' : 'icon-light.png';
 
     return path.join(__dirname, image);
@@ -84,24 +92,37 @@ class CMDRunner {
   #generateMenu() {
     const config = this.#getConfig();
 
-    const validationErrors = this.#verifyConfig(config),
-      hasErrors = validationErrors.length !== 0;
+    const commandsGrouped = config.commands.reduce((grouped, command) => {
+      const group = command.group || 'ROOT';
 
-    if (hasErrors) {
-      dialog.showErrorBox('Errors found with settings config', `Errors found:\n${validationErrors.join('\n')}`);
-    }
+      if (group in grouped) {
+        grouped[group].push(this.#genrateMenuItem(command));
+      } else {
+        grouped[group] = [this.#genrateMenuItem(command)];
+      }
 
-    const template = hasErrors ? [] : config.commands.map(this.#genrateMenuItem);
+      return grouped;
+    }, {});
+
+    const template = Object.entries(commandsGrouped).flatMap(([label, commandList]) => {
+      if (label === 'ROOT')
+        return commandList;
+      else
+        return {
+          label,
+          submenu: commandList
+        };
+    });
 
     const defaultCommands = [
       {
         label: 'Settings',
         click: () => shell.openExternal(this.#settingsPath)
-      }, 
+      },
       {
         label: 'About',
         click: () => this.#loadAboutPage()
-      },    
+      },
       {
         label: 'Quit',
         click: () => app.quit()
@@ -114,9 +135,9 @@ class CMDRunner {
   /** @param {ConfigCommand} configCommand */
   #genrateMenuItem(configCommand) {
     return {
-      label: `Run ${configCommand.label}`,
+      label: `Run ${configCommand.label || defaultLabel}`,
       click() {
-        spawn('cmd.exe', [configCommand.command], {
+        spawn('cmd.exe', [configCommand.command || defaultCommand], {
           detached: true,
           shell: true
         });
@@ -132,37 +153,15 @@ class CMDRunner {
     session.defaultSession.protocol.interceptFileProtocol('http', (request, callback) => {
       const fileUrl = request.url.replace('http://localhost/', '');
       const filePath = path.join(__dirname, fileUrl);
-      
-      if(request.url.includes('icon.png')) {
-          session.defaultSession.protocol.uninterceptProtocol('http');
+
+      if (request.url.includes('about.html')) {
+        session.defaultSession.protocol.uninterceptProtocol('http');
       }
 
       callback(filePath);
     });
 
     win.loadURL('http://localhost/about.html');
-  }
-
-  /** @param {Config} config */
-  #verifyConfig(config = {}) {
-    const errors = [];
-
-    if (!config.commands || !Array.isArray(config.commands))
-      errors.push('Config missing commands array.');
-    else
-      config.commands.forEach((c, i) => {
-        const hasLabel = 'label' in c,
-          hasCommand = 'command' in c;
-
-        if (!hasCommand && !hasLabel)
-          errors.push(`command and label fields missing for command at index ${i}`);
-        else if (!hasCommand)
-          errors.push(`command field missing for command at index ${i}`);
-        else if (!hasLabel)
-          errors.push(`label field missing for command at index ${i}`);
-      });
-
-    return errors;
   }
 }
 
