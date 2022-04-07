@@ -135,7 +135,7 @@ class CMDRunner {
   /** @param {ConfigCommand} configCommand */
   #genrateMenuItem(configCommand) {
     return {
-      label: `Run ${configCommand.label || defaultLabel}`,
+      label: configCommand.label || defaultLabel,
       click() {
         spawn('cmd.exe', [configCommand.command || defaultCommand], {
           detached: true,
