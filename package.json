@@ -9,6 +9,6 @@
   },
   "scripts": {
     "start": "electron .",
-    "pack": "electron-packager . CMDRunner --platform=win32 --icon=./icon.ico --out=bin --overwrite"
+    "pack": "electron-packager . CMDRunner --platform=win32 --arch=x64 --icon=./icon.ico --out=bin --overwrite"
   }
 }
