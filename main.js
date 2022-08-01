@@ -1,4 +1,4 @@
-const { app, Menu, Tray, shell, BrowserWindow, session } = require('electron'),
+const { app, Menu, Tray, shell, BrowserWindow, session, dialog, clipboard } = require('electron'),
   path = require('path'),
   fs = require('fs'),
   { spawn } = require('child_process');
@@ -50,6 +50,24 @@ class CMDRunner {
 
         // Prevent closing about page quiting app.
         app.on('window-all-closed', (e) => e.preventDefault());
+      })
+      .catch((e = {}) => {
+        const message = `${JSON.stringify({
+            message: e.message || 'No Message',
+            stack: e.stack || 'No Stack'
+        }, null, 3)}
+        
+Error has been copied to clip board.`;
+
+        clipboard.writeText(message);
+
+        const index = dialog.showMessageBoxSync({
+          type: 'error',
+          title: 'Unexpected Error',
+          message
+        });
+
+        app.quit();
       });
   }
 
