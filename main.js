@@ -51,24 +51,26 @@ class CMDRunner {
         // Prevent closing about page quiting app.
         app.on('window-all-closed', (e) => e.preventDefault());
       })
-      .catch((e = {}) => {
-        const message = `${JSON.stringify({
-            message: e.message || 'No Message',
-            stack: e.stack || 'No Stack'
-        }, null, 3)}
-        
+      .catch(this.#errorHandler);
+  }
+
+  #errorHandler(e) {
+    const message = `${JSON.stringify({
+      message: e.message || 'No Message',
+      stack: e.stack || 'No Stack'
+    }, null, 3)}
+
 Error has been copied to clip board.`;
 
-        clipboard.writeText(message);
+    clipboard.writeText(message);
 
-        const index = dialog.showMessageBoxSync({
-          type: 'error',
-          title: 'Unexpected Error',
-          message
-        });
+    dialog.showMessageBoxSync({
+      type: 'error',
+      title: 'Unexpected Error',
+      message
+    });
 
-        app.quit();
-      });
+    app.quit();
   }
 
   /** @returns {Config} */
@@ -89,9 +91,13 @@ Error has been copied to clip board.`;
     clearTimeout(this.#watchDebounceTimeout);
 
     this.#watchDebounceTimeout = setTimeout(() => {
-      this.#generateMenu();
-
-      this.#tray.setImage(this.#getTrayIconPath());
+      try {
+        this.#generateMenu();
+  
+        this.#tray.setImage(this.#getTrayIconPath());
+      } catch (e) {
+        this.#errorHandler(e);
+      }
     }, 500);
   }
 
